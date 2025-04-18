@@ -6,9 +6,9 @@ const app = express();
 
 // GitHub OAuth config
 passport.use(new GitHubStrategy({
-  clientID: 'YOUR_GITHUB_CLIENT_ID',
-  clientSecret: 'YOUR_GITHUB_CLIENT_SECRET',
-  callbackURL: "https://your-backend-url/auth/github/callback"
+  clientID: 'Ov23liyBjJalnOlqTUls',
+  clientSecret: 'cbeeb5d5e84c6a2759e8b3aee6a7848fc1d05833',
+  callbackURL: "https://https://soulbound-nft-project.onrender.com/auth/github/callback"
 }, function(accessToken, refreshToken, profile, done) {
   return done(null, profile);
 }));
@@ -27,7 +27,7 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 app.get('/auth/github/callback', 
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    const frontend = 'https://your-frontend-url.com';
+    const frontend = 'http://127.0.0.1:5500/frontend.html';
     const createdAt = new Date(req.user._json.created_at);
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
