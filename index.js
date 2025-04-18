@@ -1,10 +1,16 @@
+const dotenv = require('dotenv');
+dotenv.config();
+console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID);
+console.log('GITHUB_CLIENT_SECRET:', process.env.GITHUB_CLIENT_SECRET);
+console.log('BASE_URL:', process.env.BASE_URL);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+
 const express = require('express');
 const passport = require('passport');
 const session = require('express-session');
 const GitHubStrategy = require('passport-github2').Strategy;
-const dotenv = require('dotenv');
 const axios = require('axios');
-dotenv.config();
+
 
 const app = express();
 
@@ -27,57 +33,55 @@ passport.deserializeUser((user, done) => done(null, user));
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: 'http://localhost:3000/auth/github/callback',
+  callbackURL: `${process.env.BASE_URL}/auth/github/callback`, // dynamic URL
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const user = await axios.get(`https://api.github.com/users/${profile.username}`);
-    profile._json.created_at = user.data.created_at; // Attach created_at to profile for use later
+    profile._json.created_at = user.data.created_at;
     return done(null, profile);
   } catch (error) {
     return done(error);
   }
 }));
 
-// GitHub login route
-app.get('/auth/github',
+// GitHub login
+app.get('/auth/github/callback',
   passport.authenticate('github', { scope: ['user:email'] })
 );
 
-// GitHub callback with age check and redirect
+// GitHub callback
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
+    const frontend = process.env.FRONTEND_URL; // e.g., http://localhost:5500 or your live frontend
+
     if (req.user) {
       const createdAt = new Date(req.user._json.created_at);
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-      if (createdAt <= oneYearAgo) {
-        res.redirect(`http://localhost:5500/frontend.html?status=Account+Verified&github=${req.user.username}`);
-      } else {
-        res.redirect(`http://localhost:5500/frontend.html?status=Account+is+too+new&github=${req.user.username}`);
-      }
+      const status = createdAt <= oneYearAgo
+        ? 'Account+Verified'
+        : 'Account+is+too+new';
+
+      res.redirect(`${frontend}?status=${status}&github=${req.user.username}`);
     } else {
-      res.redirect(`http://localhost:5500/frontend.html?status=Authentication+Failed`);
+      res.redirect(`${frontend}?status=Authentication+Failed`);
     }
   }
 );
 
-// Logout route
+// Logout
 app.get('/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return res.redirect('/');
-    }
+  req.logout(() => {
     res.redirect('/');
   });
 });
 
-
-// Basic homepage for testing
+// Basic route
 app.get('/', (req, res) => {
   if (!req.isAuthenticated()) {
-    res.send(`<a href="/auth/github">Login with GitHub</a>`);
+    res.send(`<a href="/auth/github/callback">Login with GitHub</a>`);
   } else {
     res.send(`
       <h1>Hello ${req.user.username}</h1>
@@ -87,7 +91,31 @@ app.get('/', (req, res) => {
   }
 });
 
-// Start server
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
+// Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on ${process.env.BASE_URL}`);
 });
+app.get('/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/' }),
+  (req, res) => {
+    try {
+      if (req.user) {
+        const createdAt = new Date(req.user._json.created_at);
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+        const status = createdAt <= oneYearAgo
+          ? 'Account+Verified'
+          : 'Account+is+too+new';
+
+        res.redirect(`${frontend}?status=${status}&github=${req.user.username}`);
+      } else {
+        res.redirect(`${frontend}?status=Authentication+Failed`);
+      }
+    } catch (error) {
+      console.error('Error during authentication:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
