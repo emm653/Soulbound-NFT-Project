@@ -34,8 +34,9 @@ app.get('/auth/github/callback',
     const status = createdAt <= oneYearAgo ? 'Account+Verified' : 'Account+is+too+new';
     
     // Redirect back to frontend with status
-    res.redirect(`http://127.0.0.1:5500/?status=${encodeURIComponent('Account Verified')}&github=${req.user.username}`);
+    const redirectURL = `${frontend}/?status=${encodeURIComponent(status)}&github=${encodeURIComponent(req.user.username)}`;
 
+    res.redirect(redirectURL);
   });
 
 // Start the server
