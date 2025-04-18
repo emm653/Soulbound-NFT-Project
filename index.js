@@ -11,7 +11,6 @@ const session = require('express-session');
 const GitHubStrategy = require('passport-github2').Strategy;
 const axios = require('axios');
 
-
 const app = express();
 
 // Session setup
@@ -29,6 +28,14 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
+const cors = require('cors');
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL,  // Allow requests from your frontend URL
+  methods: ['GET', 'POST'],
+  credentials: true,
+}));
+
 // GitHub Strategy
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
@@ -36,7 +43,12 @@ passport.use(new GitHubStrategy({
   callbackURL: `${process.env.BASE_URL}/auth/github/callback`, // dynamic URL
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    const user = await axios.get(`https://api.github.com/users/${profile.username}`);
+    const user = await axios.get(`https://api.github.com/users/${profile.username}`, {
+      headers: {
+        Authorization: `token ${accessToken}`, // Pass the access token here
+      }
+    });
+
     profile._json.created_at = user.data.created_at;
     return done(null, profile);
   } catch (error) {
@@ -44,26 +56,20 @@ passport.use(new GitHubStrategy({
   }
 }));
 
-// GitHub login
-app.get('/auth/github/callback',
-  passport.authenticate('github', { scope: ['user:email'] })
-);
+// GitHub login route
+app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
 
-// GitHub callback
+// GitHub callback route (keep this one only)
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    const frontend = process.env.FRONTEND_URL; // e.g., http://localhost:5500 or your live frontend
-
+    // Redirect logic after successful authentication
+    const frontend = process.env.FRONTEND_URL;
     if (req.user) {
       const createdAt = new Date(req.user._json.created_at);
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-      const status = createdAt <= oneYearAgo
-        ? 'Account+Verified'
-        : 'Account+is+too+new';
-
+      const status = createdAt <= oneYearAgo ? 'Account+Verified' : 'Account+is+too+new';
       res.redirect(`${frontend}?status=${status}&github=${req.user.username}`);
     } else {
       res.redirect(`${frontend}?status=Authentication+Failed`);
@@ -81,7 +87,7 @@ app.get('/logout', (req, res) => {
 // Basic route
 app.get('/', (req, res) => {
   if (!req.isAuthenticated()) {
-    res.send(`<a href="/auth/github/callback">Login with GitHub</a>`);
+    res.send(`<a href='/auth/github'>Login with GitHub</a>`);
   } else {
     res.send(`
       <h1>Hello ${req.user.username}</h1>
@@ -96,26 +102,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on ${process.env.BASE_URL}`);
 });
-app.get('/auth/github/callback',
-  passport.authenticate('github', { failureRedirect: '/' }),
-  (req, res) => {
-    try {
-      if (req.user) {
-        const createdAt = new Date(req.user._json.created_at);
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-        const status = createdAt <= oneYearAgo
-          ? 'Account+Verified'
-          : 'Account+is+too+new';
-
-        res.redirect(`${frontend}?status=${status}&github=${req.user.username}`);
-      } else {
-        res.redirect(`${frontend}?status=Authentication+Failed`);
-      }
-    } catch (error) {
-      console.error('Error during authentication:', error);
-      res.status(500).send('Internal Server Error');
-    }
-  });
-
