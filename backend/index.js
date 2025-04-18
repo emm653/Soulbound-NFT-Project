@@ -1,35 +1,44 @@
 const express = require('express');
-const path = require('path');
+const passport = require('passport');
+const GitHubStrategy = require('passport-github2').Strategy;
+const session = require('express-session');
 const app = express();
 
-// Serve static files from the frontend directory
-app.use(express.static(path.join(__dirname, 'frontend')));
+// GitHub OAuth config
+passport.use(new GitHubStrategy({
+  clientID: 'YOUR_GITHUB_CLIENT_ID',
+  clientSecret: 'YOUR_GITHUB_CLIENT_SECRET',
+  callbackURL: "https://your-backend-url/auth/github/callback"
+}, function(accessToken, refreshToken, profile, done) {
+  return done(null, profile);
+}));
 
-// Your existing backend routes (for GitHub OAuth, etc.)
-app.get('/auth/github', /* GitHub authentication routes */);
-app.get('/auth/github/callback', /* Callback after GitHub login */);
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
 
-// Default route (serving the index.html from frontend)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
-});
+app.use(session({ secret: 'your-secret', resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on ${process.env.BASE_URL}`);
-});
+// GitHub authentication route
+app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+// GitHub callback route
 app.get('/auth/github/callback', 
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    const frontend = process.env.FRONTEND_URL;
-    if (req.user) {
-      const createdAt = new Date(req.user._json.created_at);
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      const status = createdAt <= oneYearAgo ? 'Account+Verified' : 'Account+is+too+new';
-      res.redirect(`${frontend}/?status=${status}&github=${req.user.username}`);
-    } else {
-      res.redirect(`${frontend}/?status=Authentication+Failed`);
-    }
-  }
-);
+    const frontend = 'https://your-frontend-url.com';
+    const createdAt = new Date(req.user._json.created_at);
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const status = createdAt <= oneYearAgo ? 'Account+Verified' : 'Account+is+too+new';
+    
+    // Redirect back to frontend with status
+    res.redirect(`${frontend}/?status=${status}&github=${req.user.username}`);
+  });
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
