@@ -27,7 +27,7 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 app.get('/auth/github/callback', 
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    const frontend = 'http://127.0.0.1:5500/frontend.html';
+    const frontend = 'http://127.0.0.1:5500';
     const createdAt = new Date(req.user._json.created_at);
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
