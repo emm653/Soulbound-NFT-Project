@@ -36,6 +36,32 @@ app.get('/auth/github/callback',
     // Redirect back to frontend with status
     res.redirect(`${frontend}/?status=${status}&github=${req.user.username}`);
   });
+  window.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get("status");
+    const githubUsername = urlParams.get("github");
+  
+    if (status) {
+      const decodedStatus = decodeURIComponent(status.replace(/\+/g, ' '));
+      const statusMessage = document.getElementById("status-message");
+  
+      if (decodedStatus === "Account Verified") {
+        statusMessage.textContent = `✅ GitHub account "${githubUsername}" is verified. You can now mint.`;
+        document.getElementById("mint-btn").style.display = "inline-block";
+      } else {
+        statusMessage.textContent = `❌ GitHub account "${githubUsername}" is too new. Cannot mint.`;
+      }
+    }
+  
+    document.getElementById("github-login").onclick = () => {
+      window.location.href = "https://soulbound-nft-project.onrender.com/auth/github";
+    };
+  
+    document.getElementById("mint-btn").onclick = () => {
+      alert("Minting now...");
+    };
+  });
+  
 
 // Start the server
 const PORT = process.env.PORT || 3000;
