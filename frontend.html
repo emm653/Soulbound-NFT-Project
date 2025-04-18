@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PoT Badge Mint</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+    }
+    input[type="text"] {
+      width: 300px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 15px;
+      margin-left: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>PoT SBT Mint</h1>
+
+  <button id='connectBtn'>Connect MetaMask</button>
+  <button id="disconnectBtn">Disconnect MetaMask</button>
+  <input type="text" id='walletDisplay' value="NO WALLET CONNECTED" readonly />
+  
+  
+  <div id= 'walletAddress' style="display: none;">
+  <p id="wallet">Connected: </p>
+  <button id="disconnect">Disconnect</button>
+</div>
+  <p id="wallet"></p>
+
+  <h1>Connect to GitHub</h1>
+  <button id='loginBtn'>Login with GitHub</button>
+
+  <div id='status'></div>
+  
+  <div id="githubUser"></div>
+
+
+  <button id="verifyUser" style="display:none;">Verify Wallet</button>
+  <p id="verifyStatus"></p>
+
+  <button id="mintBadge" style="display:none;">Mint Your Badge</button>
+  <p id="mintStatus"></p>
+
+  <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  
+  <script>
+
+	const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const githubUser = urlParams.get('github');
+
+    if (status) {
+      document.getElementById('status').innerText = status;
+    }
+
+    if (githubUser) {
+      document.getElementById('githubUser').innerText = `GitHub User: ${githubUser}`;
+    }
+	
+    document.getElementById('loginBtn').addEventListener('click', () => {
+		window.location.href = 'https://soulbound-nft-project.onrender.com/auth/github';
+		// Redirects to GitHub login
+    });
+
+    const CONTRACT_ADDRESS = '0x71251C2f0ee20509a980289B69F25ff038bed2B9';
+    const ABI = [[
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "ERC721IncorrectOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC721InsufficientApproval",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "approver",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidApprover",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidOperator",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "receiver",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidReceiver",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "ERC721InvalidSender",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC721NonexistentToken",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "approved",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "Approval",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "ApprovalForAll",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "_fromTokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "_toTokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "BatchMetadataUpdate",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "_tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "MetadataUpdate",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "Transfer",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "approve",
+		"outputs": [],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "getApproved",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "hasMinted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "isApprovedForAll",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "tokenURI",
+				"type": "string"
+			}
+		],
+		"name": "mintBadge",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "name",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "nextTokenId",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ownerOf",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "setApprovalForAll",
+		"outputs": [],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "symbol",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "tokenURI",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "transferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "verifiedUsers",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "verifyUser",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]];
+
+ /* let provider, signer, contract, userAddress;
+
+document.getElementById('connect').onclick = async () => {
+  if (!window.ethereum) return alert("Install MetaMask");
+
+  try {
+    // Initialize provider and contract
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+
+    // Check if the correct network is selected
+    const network = await provider.getNetwork();
+    const requiredChainId = '11155111'; // Sepolia testnet prompt
+
+    if (network.chainId !== parseInt(requiredChainId, 16)) {
+      alert('Please switch to Sepolia testnet to proceed');
+      return;
+    }
+
+    // ADDITIONAL UI
+    
+    function disconnectWallet() {
+      currentAccount = null;
+      walletAddress.innerText = 'Wallet not connected';
+      connectBtn.style.display = 'inline-block';
+      disconnectBtn.style.display = 'none';
+    }
+
+    function shortenAddress(address) {
+      return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    }
+
+    connectBtn.addEventListener('click', connectWallet);
+    disconnectBtn.addEventListener('click', disconnectWallet);
+
+
+    // Initialize the contract
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    document.getElementById('wallet').innerText = `Connected: ${userAddress}`;
+  } catch (error) {
+    console.error("Error during connection:", error);
+  }
+}; 
+*/
+
+window.onload = function() {
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  const walletAddress = document.getElementById('walletAddress');
+  const walletDisplay = document.getElementById('walletDisplay');
+
+  let currentAccount = null;
+  
+  async function connectWallet() {
+    try {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        currentAccount = accounts[0];
+        //walletDisplay.innerText = `Connected: ${shortenAddress(currentAccount)}`;
+        walletDisplay.value = shortenAddress(currentAccount);
+        //walletDisplay.innerText = `Connected: ${currentAccount.slice(0, 6)}...${currentAccount.slice(-4)}`;
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'inline-block';
+      } else {
+        alert('Please install MetaMask.');
+      }
+    } catch (error) {
+      console.error('Error connecting:', error);
+    }
+  }
+
+  function disconnectWallet() {
+    currentAccount = null;
+   // walletAddress.innerText = 'Wallet not connected';
+    walletDisplay.innerText = "NO WALLET CONNECTED";
+    connectBtn.style.display = 'inline-block';
+    disconnectBtn.style.display = 'none';
+  }
+
+  function shortenAddress(address) {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+  window.ethereum.on('accountsChanged', function (accounts) {
+        if (accounts.length === 0) {
+          disconnectWallet();
+        } else {
+          currentAccount = accounts[0];
+          walletDisplay.value = currentAccount;
+        }
+      });
+
+      connectBtn.addEventListener('click', connectWallet);
+      disconnectBtn.addEventListener('click', disconnectWallet);
+
+      // Check if there's already an account connected
+      if (window.ethereum.selectedAddress) {
+        currentAccount = window.ethereum.selectedAddress;
+        walletDisplay.value = currentAccount;
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'inline-block';
+      }
+
+  connectBtn.addEventListener('click', connectWallet);
+  disconnectBtn.addEventListener('click', disconnectWallet);
+ // UI Updates
+};
+    
+
+
+document.getElementById('verifyGitHub').onclick = async () => {
+  const username = document.getElementById('githubUsername').value;
+  if (!username) return alert("Enter GitHub username");
+
+  const res = await fetch(`https://api.github.com/users/${username}`);
+  if (!res.ok) {
+    document.getElementById('githubStatus').innerText = "❌ GitHub user not found.";
+    return;
+  }
+
+  const data = await res.json();
+  const createdAt = new Date(data.created_at);
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+  if (createdAt < oneYearAgo) {
+    document.getElementById('githubStatus').innerText = "✅ GitHub account is older than 1 year.";
+    document.getElementById('verifyUser').style.display = "inline";
+  } else {
+    document.getElementById('githubStatus').innerText = "❌ Account must be older than 1 year.";
+  }
+};
+
+document.getElementById('verifyUser').onclick = async () => {
+  try {
+    const tx = await contract.verifyUser(userAddress);
+    await tx.wait();
+    document.getElementById('verifyStatus').innerText = "✅ Wallet verified!";
+    document.getElementById('mintBadge').style.display = "inline";
+  } catch (err) {
+    console.error(err);
+    document.getElementById('verifyStatus').innerText = "❌ Verification failed.";
+  }
+};
+
+document.getElementById('mintBadge').onclick = async () => {
+  try {
+    const tokenURI = "https://your-metadata-url.com/token.json"; // replace with actual
+    const tx = await contract.mintBadge(tokenURI);
+    await tx.wait();
+    document.getElementById('mintStatus').innerText = "✅ Badge minted!";
+  } catch (err) {
+    console.error(err);
+    document.getElementById('mintStatus').innerText = "❌ Mint failed.";
+  }
+};
+
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
