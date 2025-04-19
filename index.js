@@ -27,17 +27,17 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 app.get('/auth/github/callback', 
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    const frontend = 'http://127.0.0.1:5500';
     const createdAt = new Date(req.user._json.created_at);
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const status = createdAt <= oneYearAgo ? 'Account+Verified' : 'Account+is+too+new';
-    
-    // Redirect back to frontend with status
-    const redirectURL = `${frontend}/?status=${encodeURIComponent(status)}&github=${encodeURIComponent(req.user.username)}`;
+
+    const status = createdAt <= oneYearAgo ? 'Account Verified' : 'Account is too new';
+
+    const redirectURL = `http://localhost:5500/?status=${encodeURIComponent(status)}&github=${encodeURIComponent(req.user.username)}`;
 
     res.redirect(redirectURL);
   });
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
