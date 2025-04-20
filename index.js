@@ -37,6 +37,15 @@ app.get('/auth/github/callback',
 
     res.redirect(redirectURL);
   });
+  app.get('/logout', (req, res) => {
+    req.logout(() => {
+      req.session.destroy(() => {
+        res.redirect('https://github.com/logout?return_to=http://localhost:5500/frontend.html'); // or your deployed frontend
+        // This logs them out of GitHub
+      });
+    });
+  });
+  
 
 
 // Start the server
