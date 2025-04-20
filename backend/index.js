@@ -37,14 +37,7 @@ app.get('/auth/github/callback',
 
     res.redirect(redirectURL);
   });
-  app.get('/logout', (req, res) => {
-    req.logout(() => {
-      req.session.destroy(() => {
-        res.redirect('https://github.com/logout?return_to=http://localhost:5500/frontend.html'); 
-
-      });
-    });
-  });
+  
   
 
 
@@ -68,6 +61,15 @@ app.get('/auth/github/callback',
     document.getElementById("github-login").onclick = () => {
       window.location.href = "https://soulbound-nft-project.onrender.com/auth/github";
     };
+
+    app.get('/logout', (req, res) => {
+      req.logout(() => {
+        req.session.destroy(() => {
+          res.redirect('https://github.com/logout?return_to=http://localhost:5500/frontend.html'); 
+  
+        });
+      });
+    });
   
     document.getElementById("mint-btn").onclick = () => {
       alert("Minting now...");
