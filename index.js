@@ -39,9 +39,13 @@ app.get('/auth/github/callback',
   });
   app.get('/logout', (req, res) => {
     req.logout(() => {
-      req.session.destroy(() => {
-        res.redirect('https://github.com/logout?return_to=http://localhost:5500/frontend.html'); 
-        // This logs them out of GitHub
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+        }
+  
+        // Redirect to a special frontend "logged out" page that then redirects to main
+        res.redirect('http://localhost:5500/loggedout.html');
       });
     });
   });
