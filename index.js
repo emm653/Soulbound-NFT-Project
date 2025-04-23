@@ -33,7 +33,7 @@ app.get('/auth/github/callback',
 
     const status = createdAt <= oneYearAgo ? 'Account Verified' : 'Account is too new';
 
-    const redirectURL = `http://localhost:5500/frontend.html?status=${encodeURIComponent(status)}&github=${encodeURIComponent(req.user.username)}`;
+    const redirectURL = `https://emm653.github.io/frontend/?status=${encodeURIComponent(status)}&github=${encodeURIComponent(req.user.username)}`;
 
     res.redirect(redirectURL);
   });
